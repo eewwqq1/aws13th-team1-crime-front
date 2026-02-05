@@ -97,7 +97,7 @@ export class ReportsService {
     ): CancelablePromise<ReportRead> {
         return __request(OpenAPI, {
             method: 'PUT',
-            url: '/api/{report_id}',
+            url: '/api/reports/{report_id}',
             path: {
                 'report_id': reportId,
             },
@@ -121,7 +121,7 @@ export class ReportsService {
     ): CancelablePromise<ReportRead> {
         return __request(OpenAPI, {
             method: 'PATCH',
-            url: '/api/{report_id}',
+            url: '/api/reports/{report_id}',
             path: {
                 'report_id': reportId,
             },
@@ -143,7 +143,7 @@ export class ReportsService {
     ): CancelablePromise<void> {
         return __request(OpenAPI, {
             method: 'DELETE',
-            url: '/api/{report_id}',
+            url: '/api/reports/{report_id}',
             path: {
                 'report_id': reportId,
             },

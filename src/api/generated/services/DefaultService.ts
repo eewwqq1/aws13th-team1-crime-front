@@ -7,17 +7,6 @@ import { OpenAPI } from '../core/OpenAPI';
 import { request as __request } from '../core/request';
 export class DefaultService {
     /**
-     * Read Root
-     * @returns any Successful Response
-     * @throws ApiError
-     */
-    public static readRootGet(): CancelablePromise<any> {
-        return __request(OpenAPI, {
-            method: 'GET',
-            url: '/',
-        });
-    }
-    /**
      * Get Regions
      * @returns any Successful Response
      * @throws ApiError
@@ -37,6 +26,17 @@ export class DefaultService {
         return __request(OpenAPI, {
             method: 'GET',
             url: '/api/crime-types',
+        });
+    }
+    /**
+     * Root
+     * @returns any Successful Response
+     * @throws ApiError
+     */
+    public static rootGet(): CancelablePromise<any> {
+        return __request(OpenAPI, {
+            method: 'GET',
+            url: '/',
         });
     }
 }

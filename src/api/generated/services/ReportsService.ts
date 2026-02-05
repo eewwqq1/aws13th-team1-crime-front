@@ -16,8 +16,8 @@ export class ReportsService {
      * @param crimeTypeId
      * @param skip
      * @param limit
-     * @param keyword
-     * @param sort_by
+     * @param keyword 검색 키워드(제목/내용)
+     * @param sortBy 정렬 기준: latest(최신순), oldest(오래된순)
      * @returns ReportRead Successful Response
      * @throws ApiError
      */
@@ -26,9 +26,8 @@ export class ReportsService {
         crimeTypeId?: (number | null),
         skip?: number,
         limit: number = 10,
-        keyword?:(string | null),
-        sort_by : string = 'latest'
-
+        keyword?: (string | null),
+        sortBy: string = 'latest',
     ): CancelablePromise<Array<ReportRead>> {
         return __request(OpenAPI, {
             method: 'GET',
@@ -39,7 +38,7 @@ export class ReportsService {
                 'skip': skip,
                 'limit': limit,
                 'keyword': keyword,
-                'sort_by': sort_by,
+                'sort_by': sortBy,
             },
             errors: {
                 422: `Validation Error`,

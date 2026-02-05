@@ -3,8 +3,8 @@
 /* tslint:disable */
 /* eslint-disable */
 export type RegionSimple = {
-    id : number;
+    id: number;
     province: string;
-    city: string;
+    city?: (string | null);
 };
 

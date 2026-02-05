@@ -3,7 +3,7 @@
 /* tslint:disable */
 /* eslint-disable */
 export type CrimeTypeSimple = {
-    id :number,
+    id: number;
     major: string;
     minor: string;
 };

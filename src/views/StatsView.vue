@@ -1,42 +1,50 @@
 <template>
-  <div class="stats-container">
-    <header class="stats-header">
-      <h2>📊 연도별 범죄 통계 대시보드</h2>
+  <div class="stats-container container-fluid py-4">
+    <header class="stats-header mb-4">
+      <h2 class="fw-bold text-center">📊 연도별 범죄 통계 대시보드</h2>
     </header>
 
-    <section class="filter-card">
-      <div class="filter-group">
-        <label>📍 지역 선택</label>
-        <select v-model="filters.region_id" @change="loadChartData">
-          <option :value="null">전체 지역</option>
-          <option v-for="r in regions" :key="r.id" :value="r.id">
-            {{ r.province }} {{ r.city || '' }}
-          </option>
-        </select>
-      </div>
+    <section class="filter-card card shadow-sm mb-4">
+      <div class="card-body d-flex gap-3">
+        <div class="filter-group flex-grow-1">
+          <label class="form-label fw-bold small text-muted">📍 지역 선택</label>
+          <select v-model="filters.region_id" @change="loadChartData" class="form-select">
+            <option :value="null">전체 지역</option>
+            <option v-for="r in regions" :key="r.id" :value="r.id">
+              {{ r.province }} {{ r.city || '' }}
+            </option>
+          </select>
+        </div>
 
-      <div class="filter-group">
-        <label>🔪 범죄 유형</label>
-        <select v-model="filters.crime_type_id" @change="loadChartData">
-          <option :value="null">전체 유형</option>
-          <option v-for="c in crimeTypes" :key="c.id" :value="c.id">
-            {{ c.major }} {{ c.minor ? '> ' + c.minor : '' }}
-          </option>
-        </select>
+        <div class="filter-group flex-grow-1">
+          <label class="form-label fw-bold small text-muted">🔪 범죄 유형</label>
+          <select v-model="filters.crime_type_id" @change="loadChartData" class="form-select">
+            <option :value="null">전체 유형</option>
+            <option v-for="c in crimeTypes" :key="c.id" :value="c.id">
+              {{ c.major }} {{ c.minor ? '> ' + c.minor : '' }}
+            </option>
+          </select>
+        </div>
       </div>
     </section>
 
-    <section class="chart-card">
-      <div v-if="loading" class="loading-overlay">데이터 로딩 중...</div>
-      <div v-else class="chart-wrapper">
-        <Line
-            v-if="chartData.labels.length > 0"
-            :data="chartData"
-            :options="chartOptions"
-        />
-        <div v-else class="no-data">
-          <p>조회된 통계 데이터가 없습니다.</p>
-          <span>지역이나 유형을 변경해 보세요.</span>
+    <section class="chart-card card shadow-sm">
+      <div class="card-body" style="min-height: 500px; position: relative;">
+        <div v-if="loading" class="loading-overlay">
+          <div class="spinner-border text-success" role="status"></div>
+          <p class="mt-2">데이터 로딩 중...</p>
+        </div>
+
+        <div v-else class="chart-wrapper" style="height: 450px;">
+          <Line
+              v-if="chartData.labels.length > 0"
+              :data="chartData"
+              :options="chartOptions"
+          />
+          <div v-else class="no-data-wrapper text-center py-5">
+            <p class="text-muted fs-4">조회된 통계 데이터가 없습니다.</p>
+            <span class="text-secondary">지역이나 유형을 변경해 보세요.</span>
+          </div>
         </div>
       </div>
     </section>
@@ -51,8 +59,6 @@ import {
   CategoryScale, LinearScale, PointElement, Filler
 } from 'chart.js';
 
-// ⚠️ 중요: OpenAPI 생성 파일 경로 확인
-// @/api/generated/services/... 혹은 index에서 직접 가져오기
 import { OfficialStatusService } from '@/api/generated/services/OfficialStatusService';
 import { DefaultService } from '@/api/generated/services/DefaultService';
 
@@ -77,7 +83,9 @@ const chartData = reactive({
       backgroundColor: 'rgba(66, 185, 131, 0.2)',
       data: [] as number[],
       fill: true,
-      tension: 0.3
+      tension: 0.3,
+      pointRadius: 5,
+      pointHoverRadius: 7
     }
   ]
 });
@@ -87,6 +95,7 @@ const chartOptions = {
   maintainAspectRatio: false,
   plugins: {
     legend: { position: 'top' as const },
+    tooltip: { mode: 'index' as const, intersect: false }
   },
   scales: {
     y: {
@@ -100,7 +109,6 @@ const chartOptions = {
 
 const loadInitialData = async () => {
   try {
-    // OpenAPI: /api/regions, /api/crime-types
     const [resRegions, resCrimes] = await Promise.all([
       DefaultService.getRegionsApiRegionsGet(),
       DefaultService.getCrimeTypesApiCrimeTypesGet()
@@ -108,33 +116,46 @@ const loadInitialData = async () => {
     regions.value = resRegions || [];
     crimeTypes.value = resCrimes || [];
   } catch (e) {
-    console.error("초기 필터 데이터 로드 실패:", e);
+    console.error("초기 데이터 로드 실패:", e);
   }
 };
 
 const loadChartData = async () => {
   loading.value = true;
   try {
-    // OpenAPI: /api/ (GET) - OfficialStatusService
-    // 인자 순서: region_id, crime_type_id, year
     const stats = await OfficialStatusService.getOfficialStatsApiStatusAllGet(
         filters.region_id ?? undefined,
         filters.crime_type_id ?? undefined,
-        undefined // year 필터는 일단 전체
+        undefined
     );
 
-    if (stats && stats.length > 0) {
-      // 연도순 정렬
-      const sortedStats = [...stats].sort((a, b) => a.year - b.year);
+    console.log("🔍 백엔드 원본 데이터:", stats);
 
-      chartData.labels = sortedStats.map(s => `${s.year}년`);
-      chartData.datasets[0].data = sortedStats.map(s => s.count); // count 컬럼 반영
+    if (stats && stats.length > 0) {
+      // 1. 연도별로 데이터 그룹화 (중복 연도 합산)
+      const yearlyMap = new Map<number, number>();
+
+      stats.forEach((s: any) => {
+        const year = Number(s.year);
+        const count = Number(s.count);
+        const currentCount = yearlyMap.get(year) || 0;
+        yearlyMap.set(year, currentCount + count);
+      });
+
+      // 2. 연도순 정렬 (2024 -> 2026)
+      const sortedYears = Array.from(yearlyMap.keys()).sort((a, b) => a - b);
+
+      console.log("✅ 정렬된 연도 리스트:", sortedYears);
+
+      // 3. 차트 데이터에 바인딩
+      chartData.labels = sortedYears.map(y => `${y}년`);
+      chartData.datasets[0].data = sortedYears.map(y => yearlyMap.get(y) || 0);
     } else {
       chartData.labels = [];
       chartData.datasets[0].data = [];
     }
   } catch (e) {
-    console.error("차트 데이터 로드 실패:", e);
+    console.error("차트 로드 실패:", e);
   } finally {
     loading.value = false;
   }
@@ -147,37 +168,22 @@ onMounted(async () => {
 </script>
 
 <style scoped>
-.stats-container { max-width: 1100px; margin: 0 auto; padding: 40px 20px; }
-.stats-header { margin-bottom: 30px; text-align: center; }
-
-.filter-card {
-  display: flex; gap: 20px; background: white; padding: 25px;
-  border-radius: 12px; margin-bottom: 25px;
-  box-shadow: 0 4px 12px rgba(0,0,0,0.05);
-}
-
-.filter-group { display: flex; flex-direction: column; gap: 10px; flex: 1; }
-.filter-group label { font-size: 14px; font-weight: 700; color: #4a5568; }
-
-select {
-  padding: 12px; border-radius: 8px; border: 1px solid #e2e8f0;
-  background-color: #f8fafc; font-size: 15px; outline: none;
-}
-
-.chart-card {
-  background: white; border-radius: 12px; padding: 30px;
-  box-shadow: 0 4px 12px rgba(0,0,0,0.05); min-height: 500px;
-  display: flex; flex-direction: column;
-}
-
-.chart-wrapper { flex: 1; height: 450px; }
-
-.no-data {
-  display: flex; flex-direction: column; align-items: center; justify-content: center;
-  height: 100%; color: #a0aec0; gap: 10px; margin-top: 100px;
-}
+.stats-container { max-width: 1200px; margin: 0 auto; }
+.filter-card { border: none; border-radius: 12px; }
+.chart-card { border: none; border-radius: 12px; }
 
 .loading-overlay {
-  text-align: center; margin-top: 150px; font-weight: bold; color: #42b983;
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  z-index: 10;
+}
+
+.no-data-wrapper {
+  margin-top: 100px;
 }
 </style>

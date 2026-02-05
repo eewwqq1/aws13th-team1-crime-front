@@ -19,7 +19,7 @@ export class AdminService {
     ): CancelablePromise<ReportResponse> {
         return __request(OpenAPI, {
             method: 'POST',
-            url: '/api/reports/{report_id}/approve',
+            url: '/api/admin/reports/{report_id}/approve',
             path: {
                 'report_id': reportId,
             },
@@ -39,7 +39,7 @@ export class AdminService {
     ): CancelablePromise<ReportResponse> {
         return __request(OpenAPI, {
             method: 'POST',
-            url: '/api/reports/{report_id}/reject',
+            url: '/api/admin/reports/{report_id}/reject',
             path: {
                 'report_id': reportId,
             },
@@ -63,7 +63,7 @@ export class AdminService {
     ): CancelablePromise<Array<ReportResponse>> {
         return __request(OpenAPI, {
             method: 'GET',
-            url: '/api/reports',
+            url: '/api/admin/reports',
             query: {
                 'status': status,
                 'skip': skip,

@@ -31,7 +31,7 @@ export class ReportsService {
     ): CancelablePromise<Array<ReportRead>> {
         return __request(OpenAPI, {
             method: 'GET',
-            url: '/api',
+            url: '/api/reports',
             query: {
                 'region_id': regionId,
                 'crime_type_id': crimeTypeId,
@@ -56,7 +56,7 @@ export class ReportsService {
     ): CancelablePromise<ReportRead> {
         return __request(OpenAPI, {
             method: 'POST',
-            url: '/api',
+            url: '/api/reports',
             body: requestBody,
             mediaType: 'application/json',
             errors: {

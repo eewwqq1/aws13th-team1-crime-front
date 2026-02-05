@@ -117,7 +117,7 @@ const loadChartData = async () => {
   try {
     // OpenAPI: /api/ (GET) - OfficialStatusService
     // 인자 순서: region_id, crime_type_id, year
-    const stats = await OfficialStatusService.getOfficialStatsApiGet(
+    const stats = await OfficialStatusService.getOfficialStatsApiStatusAllGet(
         filters.region_id ?? undefined,
         filters.crime_type_id ?? undefined,
         undefined // year 필터는 일단 전체

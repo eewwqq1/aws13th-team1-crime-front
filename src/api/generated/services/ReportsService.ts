@@ -2,11 +2,11 @@
 /* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
-import type { ReportCreate } from '../models/ReportCreate';
-import type { ReportPatch } from '../models/ReportPatch';
-import type { ReportRead } from '../models/ReportRead';
-import type { ReportUpdate } from '../models/ReportUpdate';
-import type { CancelablePromise } from '../core/CancelablePromise';
+import type { ReportCreate } from '@/api/generated';
+import type { ReportPatch } from '@/api/generated';
+import type { ReportRead } from '@/api/generated';
+import type { ReportUpdate } from '@/api/generated';
+import type { CancelablePromise } from '@/api/generated';
 import { OpenAPI } from '../core/OpenAPI';
 import { request as __request } from '../core/request';
 export class ReportsService {

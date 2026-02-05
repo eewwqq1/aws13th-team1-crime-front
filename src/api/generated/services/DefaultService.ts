@@ -25,7 +25,7 @@ export class DefaultService {
     public static getCrimeTypesApiCrimeTypesGet(): CancelablePromise<any> {
         return __request(OpenAPI, {
             method: 'GET',
-            url: '/api/crime-types',
+            url: '/api/crime-type',
         });
     }
     /**

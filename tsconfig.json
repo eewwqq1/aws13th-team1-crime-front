@@ -1,0 +1,8 @@
+
+{
+  "compilerOptions": {
+    "target": "es2015",  // 또는 "es6", "esnext"
+    "lib": ["es2015", "dom"], // 라이브러리 목록에도 추가
+    // ... 나머지 설정
+  }
+}

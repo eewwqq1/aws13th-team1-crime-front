@@ -44,11 +44,10 @@
         </div>
       </div>
     </div>
-
     <div class="card shadow-sm border-0 mb-4">
       <div class="card-body bg-white">
-        <div v-if="!isAdmin" class="row g-2">
-          <div class="col-md-5">
+        <div v-if="!isAdmin" class="row g-2 align-items-center">
+          <div class="col-md-4">
             <input v-model="searchFilters.keyword" class="form-control form-control-sm" placeholder="🔍 제목/내용 검색" @keyup.enter="resetAndLoad">
           </div>
           <div class="col-md-2">
@@ -57,8 +56,14 @@
           <div class="col-md-2">
             <input v-model.number="searchFilters.crime_type_id" type="number" class="form-control form-control-sm" placeholder="📂 유형 ID">
           </div>
-          <div class="col-md-3 d-grid">
-            <button @click="resetAndLoad" class="btn btn-dark btn-sm">필터 검색</button>
+          <div class="col-md-2">
+            <select v-model="sortBy" class="form-select form-select-sm" @change="resetAndLoad">
+              <option value="latest">최신순</option>
+              <option value="oldest">오래된순</option>
+            </select>
+          </div>
+          <div class="col-md-2 d-grid">
+            <button @click="resetAndLoad" class="btn btn-dark btn-sm">검색</button>
           </div>
         </div>
         <div v-else class="d-flex justify-content-between align-items-center">
@@ -152,6 +157,7 @@ const reports = ref<any[]>([]);
 const filterStatus = ref<any>(undefined);
 const isEditing = ref(false);
 const editingId = ref<number | null>(null);
+const sortBy = ref('latest');
 
 // 페이지네이션 상태
 const currentPage = ref(0);
@@ -209,26 +215,22 @@ const loadReports = async () => {
     const skip = currentPage.value * pageSize;
 
     if (isAdmin.value) {
-      // 관리자는 심플한 쿼리
       reports.value = await AdminService.getReportsApiReportsGet(
           filterStatus.value,
           skip,
           pageSize
       );
     } else {
-      // ⚠️ 중요: crime_type_id가 적용되지 않는다면 인자 순서를 반드시 확인하세요.
-      // Swagger에서 getReportsApiGet의 파라미터 순서를 다시 보세요.
-      // 보통: (regionId?, crimeTypeId?, skip?, limit?, keyword?, sort?)
+      // 'latest' 고정값 대신 sortBy.value를 전달
       reports.value = await ReportsService.getReportsApiGet(
-          searchFilters.region_id || undefined,    // 1. regionId
-          searchFilters.crime_type_id || undefined, // 2. crimeTypeId
-          skip,                                     // 3. skip
-          pageSize,                                 // 4. limit
-          searchFilters.keyword || undefined,      // 5. keyword
-          'latest'                                  // 6. sort
+          searchFilters.region_id || undefined,
+          searchFilters.crime_type_id || undefined,
+          skip,
+          pageSize,
+          searchFilters.keyword || undefined,
+          sortBy.value // <--- 선택한 정렬 기준 반영
       );
     }
-    console.log("🔍 API Response Sample:", reports.value[0]); // 첫 번째 데이터 구조 확인용
   } catch (e) {
     console.error("Load failed:", e);
   }

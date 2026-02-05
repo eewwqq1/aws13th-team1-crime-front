@@ -17,11 +17,26 @@
         </div>
 
         <div class="filter-group flex-grow-1">
-          <label class="form-label fw-bold small text-muted">🔪 범죄 유형</label>
-          <select v-model="filters.crime_type_id" @change="loadChartData" class="form-select">
-            <option :value="null">전체 유형</option>
-            <option v-for="c in crimeTypes" :key="c.id" :value="c.id">
-              {{ c.major }} {{ c.minor ? '> ' + c.minor : '' }}
+          <label class="form-label fw-bold small text-muted">🔪 범죄 대분류</label>
+          <select v-model="selectedMajor" @change="onMajorChange" class="form-select">
+            <option :value="null">전체 대분류</option>
+            <option v-for="major in majorCategories" :key="major" :value="major">
+              {{ major }}
+            </option>
+          </select>
+        </div>
+
+        <div class="filter-group flex-grow-1">
+          <label class="form-label fw-bold small text-muted">🔎 범죄 소분류</label>
+          <select
+              v-model="filters.crime_type_id"
+              @change="loadChartData"
+              class="form-select"
+              :disabled="!selectedMajor"
+          >
+            <option :value="null">전체 소분류</option>
+            <option v-for="c in filteredMinors" :key="c.id" :value="c.id">
+              {{ c.minor }}
             </option>
           </select>
         </div>
@@ -52,7 +67,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, reactive } from 'vue';
+import { ref, onMounted, reactive,computed } from 'vue';
 import { Line } from 'vue-chartjs';
 import {
   Chart as ChartJS, Title, Tooltip, Legend, LineElement,
@@ -68,11 +83,49 @@ ChartJS.register(Title, Tooltip, Legend, LineElement, CategoryScale, LinearScale
 const regions = ref<any[]>([]);
 const crimeTypes = ref<any[]>([]);
 const loading = ref(false);
-
+const selectedMajor = ref<string | null>(null);
 const filters = reactive({
   region_id: null as number | null,
   crime_type_id: null as number | null,
 });
+const majorCategories = computed(() => {
+  const majors = crimeTypes.value.map(c => c.major);
+  return Array.from(new Set(majors)); // 안전하게 Array.from 사용
+});
+
+
+const filteredMinors = computed(() => {
+  if (!selectedMajor.value) return [];
+
+  console.log("--- 필터링 디버깅 시작 ---");
+  console.log("1. 사용자가 선택한 값:", `[${selectedMajor.value}]`, "타입:", typeof selectedMajor.value);
+
+  const results = crimeTypes.value.filter(c => {
+    // 양쪽 다 문자열로 강제 변환 + 공백 제거 후 비교
+    const majorInDb = String(c.major).trim();
+    const selected = String(selectedMajor.value).trim();
+
+    const isMatch = majorInDb === selected;
+
+    // 만약 한 번도 매칭이 안 된다면 샘플 데이터 하나만 출력해보기
+    if (crimeTypes.value.indexOf(c) === 0) {
+      console.log("2. DB 데이터 샘플 값:", `[${majorInDb}]`, "타입:", typeof majorInDb);
+    }
+
+    return isMatch;
+  });
+
+  console.log("3. 최종 필터링 결과 개수:", results.length);
+  console.log("--- 필터링 디버깅 종료 ---");
+
+  return results;
+});
+
+// 대분류가 바뀌면 소분류 선택값 초기화 및 데이터 로드
+const onMajorChange = () => {
+  filters.crime_type_id = null; // 소분류 초기화
+  loadChartData();
+};
 
 const chartData = reactive({
   labels: [] as string[],
@@ -100,7 +153,12 @@ const chartOptions = {
   scales: {
     y: {
       beginAtZero: true,
-      ticks: { stepSize: 1 }
+      // 🚨 이 부분을 삭제하거나 수정하세요!
+      ticks: {
+        // stepSize: 1  <-- 이 줄을 삭제하세요.
+        // 대신 아래처럼 최대 눈금 수를 제한할 수 있습니다.
+        maxTicksLimit: 10
+      }
     }
   }
 };
@@ -119,38 +177,41 @@ const loadInitialData = async () => {
     console.error("초기 데이터 로드 실패:", e);
   }
 };
-
 const loadChartData = async () => {
   loading.value = true;
   try {
+    console.log("📡 요청 필터:", { region: filters.region_id, crime: filters.crime_type_id });
+    console.log("📝 필터 상태 확인:", {
+      region: filters.region_id,
+      region_type: typeof filters.region_id,
+      crime: filters.crime_type_id,
+      crime_type: typeof filters.crime_type_id
+    });
     const stats = await OfficialStatusService.getOfficialStatsApiStatusAllGet(
         filters.region_id ?? undefined,
         filters.crime_type_id ?? undefined,
         undefined
     );
 
-    console.log("🔍 백엔드 원본 데이터:", stats);
+
+
+    console.log("🔍 응답 데이터 개수:", stats?.length);
 
     if (stats && stats.length > 0) {
-      // 1. 연도별로 데이터 그룹화 (중복 연도 합산)
+      // 데이터가 온다면 그룹화 로직 실행
       const yearlyMap = new Map<number, number>();
-
       stats.forEach((s: any) => {
         const year = Number(s.year);
         const count = Number(s.count);
-        const currentCount = yearlyMap.get(year) || 0;
-        yearlyMap.set(year, currentCount + count);
+        yearlyMap.set(year, (yearlyMap.get(year) || 0) + count);
       });
 
-      // 2. 연도순 정렬 (2024 -> 2026)
       const sortedYears = Array.from(yearlyMap.keys()).sort((a, b) => a - b);
-
-      console.log("✅ 정렬된 연도 리스트:", sortedYears);
-
-      // 3. 차트 데이터에 바인딩
       chartData.labels = sortedYears.map(y => `${y}년`);
       chartData.datasets[0].data = sortedYears.map(y => yearlyMap.get(y) || 0);
     } else {
+      // ❌ 데이터가 0개일 때 여기로 들어옵니다.
+      console.warn("⚠️ 해당 필터로 조회된 데이터가 0건입니다.");
       chartData.labels = [];
       chartData.datasets[0].data = [];
     }
@@ -160,7 +221,6 @@ const loadChartData = async () => {
     loading.value = false;
   }
 };
-
 onMounted(async () => {
   await loadInitialData();
   await loadChartData();
